@@ -1,15 +1,16 @@
 import pygame
 import random
+import math
 
-
+# Random colours for groups
 random_colours = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for x in range(1000)]
 
-gate_image_raw = pygame.image.load("Resources/Images/gate.png")
-gate_image = pygame.transform.scale(gate_image_raw, (128, 192))
-gate_image_rect = gate_image.get_rect()
 
+def rot_center(image, angle, x, y):
+    rotated_image = pygame.transform.rotate(image, angle)
+    new_rect = rotated_image.get_rect(center=image.get_rect(center=(x, y)).center)
 
-
+    return rotated_image, new_rect
 class Gate:
     def __init__(self, x, y, angle, group):
         self.x = x
@@ -20,14 +21,23 @@ class Gate:
     def get_index(self):
         return self.group.gates.index(self) + 1
 
+
     def display(self):
         grid_position = ((240 + (self.x * 22.5)), self.y * 22.5)
         gate_size = 128
 
 
-        gate_image_rect.center = grid_position
 
-        screen.blit(gate_image, gate_image_rect.topleft)
+        text_surface = font.render(str(self.get_index()), True, 'Green')
+
+
+        x_offset = math.sin(self.angle) * 10
+        y_offset = math.cos(self.angle) * 10
+
+
+        gate_image_rect.center = grid_position  # Set centre of gate to be at grid pos
+        screen.blit(gate_image, gate_image_rect.topleft)  # Display gate
+        screen.blit(text_surface, (grid_position[0] + x_offset, grid_position[1] + y_offset))
 
         print("showing a ", self.group.colour, "gate at ", grid_position)
 
@@ -69,6 +79,17 @@ class Game:
                 gate.display()
 
 
+
+def rot_center(image, angle):
+    """rotate an image while keeping its center and size"""
+    orig_rect = image.get_rect()
+    rot_image = pygame.transform.rotate(image, angle)
+    rot_rect = orig_rect.copy()
+    rot_rect.center = rot_image.get_rect().center
+    rot_image = rot_image.subsurface(rot_rect).copy()
+    return rot_image
+
+
 # -------------------------------------------------------------------
 
 pygame.init()  # start pygame engine
@@ -78,6 +99,13 @@ width = 1920  # define screen width
 height = 1080  # define screen height
 screen = pygame.display.set_mode((width, height))  # set screen size
 pygame.display.set_caption("Gate Follower")  # Set window title
+
+font = pygame.font.Font(None, 50) # Font management
+
+# Gate images
+gate_image_raw = pygame.image.load("Resources/Images/gate.png")
+gate_image = pygame.transform.scale(gate_image_raw, (128, 192))
+gate_image_rect = gate_image.get_rect()
 
 # --Surface Testing--
 
