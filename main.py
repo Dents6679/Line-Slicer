@@ -5,18 +5,31 @@ import sys
 random_colours = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for x in range(1000)]
 
 
-
 class Gate:
-    def __init__(self, position_x, position_y, angle):
-        self.position_x = position_x
-        self.position_y = position_y
+    def __init__(self, x, y, angle, group):
+        self.x = x
+        self.y = y
         self.angle = angle
+        self.group = group
+
+
+    def get_index(self):
+
+        return self.group.gates.index(self) + 1
+
+    def display(self):
+        grid_position = ((240 + (self.x * 22.5)), self.y * 22.5)
+        gate_size = 300
+
+        surface = pygame.Surface((gate_size, gate_size))
+        surface.fill(random_colours.pop())
+        screen.blit(surface, grid_position)
+
 
 
 class GateGroup:
     def __init__(self, first_item, colour):
         self.gates = []
-        self.colour
         # if no colour is provided, generate a random one
         if colour is None:
             self.colour = random_colours.pop()
@@ -26,30 +39,28 @@ class GateGroup:
         if first_item is not None:
             self.gates.append(first_item)
 
-
-    def add_item(self, gate):
+    def add_gate(self, gate):
         self.gates.append(gate)
 
-    def add_item(self, x, y, angle, size):
-        self.gates.append(create_gate_surface(x, y, angle, size))
+    def add_gate(self, x, y, angle, size):
+        self.gates.append(Gate(x, y, angle, size, self))
+
+
+
+class Game:
+    def __init__(self, name: str, song_path: str):
+        self.name = name
+        self.song_path = song_path
+        self.groups
+        self.allGates
+
+    def add_group(self, group: GateGroup):
+        self.groups.append(group)
 
 
 
 
-print(random_colours)
-
-
-def create_gate_surface(x, y, angle, size):
-    position_x = 240 + (x * 22.5)
-    position_y = y * 22.5
-
-    surface = pygame.Surface((size, size))
-    # surface = pygame.transform.rotate(surface, angle)
-    surface.fill(random_colours.pop())
-    screen.blit(surface, (position_x, position_y))
-
-    return surface
-
+# -------------------------------------------------------------------
 
 pygame.init()  # start pygame engine
 
@@ -57,7 +68,7 @@ pygame.init()  # start pygame engine
 width = 1920  # set screen width
 height = 1080  # set screen height
 screen = pygame.display.set_mode((width, height))
-pygame.display.set_caption("Gate Slasher")  # Set window title
+pygame.display.set_caption("Gate Follower")  # Set window title
 
 # --Surface Testing--
 
@@ -65,6 +76,16 @@ this_surf = pygame.Surface((1440, 1080))
 this_surf.fill((255, 255, 255))
 this_surf.set_alpha(60)
 screen.blit(this_surf, (240, 0))
+
+
+
+
+
+# --create map--
+game1 = Game()
+
+
+
 
 # --Clock Stuff--
 clock = pygame.time.Clock()
