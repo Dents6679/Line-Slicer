@@ -5,41 +5,55 @@ import math
 # Random colours for groups
 random_colours = [(random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)) for x in range(1000)]
 
+# Gate images
+gate_image_raw = pygame.image.load("Resources/Images/gate.png")
+gate_image = pygame.transform.scale(gate_image_raw, (128, 192))
+gate_image_rect = gate_image.get_rect()
 
-def rot_center(image, angle, x, y):
-    rotated_image = pygame.transform.rotate(image, angle)
-    new_rect = rotated_image.get_rect(center=image.get_rect(center=(x, y)).center)
+# Approach Gate Image
+approach_image_raw = pygame.image.load("Resources/Images/approach.png")
+approach_image = pygame.transform.scale(approach_image_raw, (128, 192))
+approach_image_rect = approach_image.get_rect()
 
-    return rotated_image, new_rect
+
 class Gate:
-    def __init__(self, x, y, angle, group):
+    def __init__(self, x, y, angle, group, delay):
+        self.timer = 1200  # the approach distance
         self.x = x
         self.y = y
         self.angle = angle
         self.group = group
+        self.delay = delay
 
     def get_index(self):
         return self.group.gates.index(self) + 1
 
-
     def display(self):
+
         grid_position = ((240 + (self.x * 22.5)), self.y * 22.5)
-        gate_size = 128
 
+        text_surface = font.render(str(self.get_index()), True, 'white')
 
+        # Rotate the gate image
+        rotated_gate_image = pygame.transform.rotate(gate_image, -self.angle)
+        rotated_gate_rect = rotated_gate_image.get_rect(center=grid_position)
 
-        text_surface = font.render(str(self.get_index()), True, 'Green')
+        if self.timer > -150:
+            screen.blit(rotated_gate_image, rotated_gate_rect.topleft)  # Display rotated gate
+            screen.blit(text_surface, grid_position)
+            self.display_approach()
 
+    def display_approach(self):
+        if self.timer > -150:
+            self.timer = self.timer - 12
 
-        x_offset = math.sin(self.angle) * 10
-        y_offset = math.cos(self.angle) * 10
+        x = (240 + (self.x * 22.5)) + math.cos(math.radians(self.angle)) * - max(self.timer / 10, 0)
+        y = (self.y * 22.5) + math.sin(math.radians(self.angle)) * - max(self.timer / 10, 0)
 
-
-        gate_image_rect.center = grid_position  # Set centre of gate to be at grid pos
-        screen.blit(gate_image, gate_image_rect.topleft)  # Display gate
-        screen.blit(text_surface, (grid_position[0] + x_offset, grid_position[1] + y_offset))
-
-        print("showing a ", self.group.colour, "gate at ", grid_position)
+        if self.timer > -150:
+            rotated_approach_image = pygame.transform.rotate(approach_image, -self.angle)
+            rotated_approach_rect = rotated_approach_image.get_rect(center=(x, y))
+            screen.blit(rotated_approach_image, rotated_approach_rect.topleft)  # Display rotated gate
 
 
 class GateGroup:
@@ -54,7 +68,6 @@ class GateGroup:
         if first_item is not None:
             self.gates.append(first_item)
 
-
     def add_gate(self, x, y, angle):
         print("Added new gate to group", self)
         self.gates.append(Gate(x, y, angle, self))
@@ -66,6 +79,27 @@ class Game:
         self.song_path = song_path
         self.groups = []
         self.allGates = []
+        self.player_health = 100
+
+    def failGame(self):
+        print('failed.')
+
+    def update_player_health(self):
+
+        health_bar_background = pygame.Surface((64, 960))
+        health_bar_background.fill('pink')
+        health_bar_background.set_alpha(80)
+        screen.blit(health_bar_background, (60, 60))
+
+
+        health_percentage = max(0.01 * self.player_health, 0)
+        health_bar = pygame.Surface((64, (960 * health_percentage)))
+        health_bar.fill('pink')
+        screen.blit(health_bar, (60 , 60+ 960-(960 * health_percentage)))
+
+        if health_percentage == 0:
+            self.failGame()
+        self.player_health -= 1
 
     def add_group(self, group: GateGroup):
         self.groups.append(group)
@@ -77,18 +111,12 @@ class Game:
         for group in self.groups:
             for gate in group.gates:
                 gate.display()
+                gate.display_approach()
 
-
-
-def rot_center(image, angle):
-    """rotate an image while keeping its center and size"""
-    orig_rect = image.get_rect()
-    rot_image = pygame.transform.rotate(image, angle)
-    rot_rect = orig_rect.copy()
-    rot_rect.center = rot_image.get_rect().center
-    rot_image = rot_image.subsurface(rot_rect).copy()
-    return rot_image
-
+    def extract_delays(self):
+        delay_map = {}
+        for gate in self.allGates:
+            delay_map[gate] =gate.delay
 
 # -------------------------------------------------------------------
 
@@ -100,12 +128,7 @@ height = 1080  # define screen height
 screen = pygame.display.set_mode((width, height))  # set screen size
 pygame.display.set_caption("Gate Follower")  # Set window title
 
-font = pygame.font.Font(None, 50) # Font management
-
-# Gate images
-gate_image_raw = pygame.image.load("Resources/Images/gate.png")
-gate_image = pygame.transform.scale(gate_image_raw, (128, 192))
-gate_image_rect = gate_image.get_rect()
+font = pygame.font.Font(None, 50)  # Font management
 
 # --Surface Testing--
 
@@ -114,18 +137,14 @@ gate_image_rect = gate_image.get_rect()
 game1 = Game("Test Map", "hello.com")
 
 group1 = GateGroup(None, "orange")
-group1.add_gate(30, 30, 0)
-group1.add_gate(70, 70, 0)
-group1.add_gate(20, 40, 0)
-
-group2 = GateGroup(None, "green")
-group2.add_gate(23, 12, 0)
-group2.add_gate(21, 21, 0)
-group2.add_gate(13, 11, 0)
+group1.add_gate(1, 1, 0)
+group1.add_gate(60, 48, 32)
+group1.add_gate(42, 30, 180)
+group1.add_gate(8, 32, 270)
 
 # DON'T FORGET TO ADD GROUPS TO GAME!!!!!!
 game1.add_group(group1)
-game1.add_group(group2)
+# game1.add_group(group2)
 
 # -- mouse cursor stuff --
 
@@ -139,11 +158,9 @@ pygame.mouse.set_visible(False)
 clock = pygame.time.Clock()
 
 while True:
+
     mouse_x, mouse_y = pygame.mouse.get_pos()  # get mouse position
     screen.fill((0, 0, 0))  # set background to be black
-
-
-
 
     for event in pygame.event.get():  # Catching any game exits
         if event.type == pygame.QUIT:
@@ -151,6 +168,7 @@ while True:
             exit()
 
     game1.debug_display_all_gates()
+    game1.update_player_health()
     image_rect.center = (mouse_x, mouse_y)  # Set centre of mouse as centre of cursor image
     screen.blit(cursor_image, image_rect.topleft)  # Display cursor image
 
