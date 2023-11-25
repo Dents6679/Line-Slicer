@@ -24,6 +24,7 @@ class Gate:
         self.angle = angle
         self.group = group
         self.delay = delay
+        self.showing = False
 
     def get_index(self):
         return self.group.gates.index(self) + 1
@@ -41,7 +42,9 @@ class Gate:
         if self.timer > -150:
             screen.blit(rotated_gate_image, rotated_gate_rect.topleft)  # Display rotated gate
             screen.blit(text_surface, grid_position)
-            self.display_approach()
+            self.display_approach() #Display approach Gate
+        else:
+            self.group.game.showing_gates.remove(self)
 
     def display_approach(self):
         if self.timer > -150:
@@ -57,8 +60,9 @@ class Gate:
 
 
 class GateGroup:
-    def __init__(self, first_item, colour):
+    def __init__(self, first_item, colour, game):
         self.gates = []
+        self.game = game
         # if no colour is provided, generate a random one
         if colour is None:
             self.colour = random_colours.pop()
@@ -68,9 +72,10 @@ class GateGroup:
         if first_item is not None:
             self.gates.append(first_item)
 
-    def add_gate(self, x, y, angle):
+    def add_gate(self, x, y, angle, delay):
         print("Added new gate to group", self)
-        self.gates.append(Gate(x, y, angle, self))
+        self.gates.append(Gate(x, y, angle, self, delay))
+
 
 
 class Game:
@@ -80,8 +85,11 @@ class Game:
         self.groups = []
         self.allGates = []
         self.player_health = 100
+        self.delay_map = {}
+        self.frameCount = 0
+        self.showing_gates = []
 
-    def failGame(self):
+    def fail_game(self):
         print('failed.')
 
     def update_player_health(self):
@@ -91,15 +99,15 @@ class Game:
         health_bar_background.set_alpha(80)
         screen.blit(health_bar_background, (60, 60))
 
-
         health_percentage = max(0.01 * self.player_health, 0)
         health_bar = pygame.Surface((64, (960 * health_percentage)))
         health_bar.fill('pink')
-        screen.blit(health_bar, (60 , 60+ 960-(960 * health_percentage)))
+        screen.blit(health_bar, (60, 60 + 960 - (960 * health_percentage)))
 
         if health_percentage == 0:
-            self.failGame()
-        self.player_health -= 1
+            self.fail_game()
+        else:
+            self.player_health -= 0.5  # adjust this to change health drain rate.
 
     def add_group(self, group: GateGroup):
         self.groups.append(group)
@@ -113,10 +121,30 @@ class Game:
                 gate.display()
                 gate.display_approach()
 
-    def extract_delays(self):
-        delay_map = {}
+    def update_delays(self):
         for gate in self.allGates:
-            delay_map[gate] =gate.delay
+            if len(self.allGates) == 0:
+                before_delay = 0
+            else:
+                before_delay = sum(self.delay_map.keys())
+
+
+            self.delay_map[before_delay + gate.delay] = gate
+
+
+    def start_map(self):
+
+        # After a certain delay, play a
+        if self.frameCount in self.delay_map:
+            triggered_gate = self.delay_map[self.frameCount]
+            self.showing_gates.append(triggered_gate)
+            triggered_gate.display()
+
+        for gate in self.showing_gates:
+            gate.display()
+
+
+
 
 # -------------------------------------------------------------------
 
@@ -133,14 +161,16 @@ font = pygame.font.Font(None, 50)  # Font management
 # --Surface Testing--
 
 
-# --create map--
+# --create music mapping--
 game1 = Game("Test Map", "hello.com")
 
-group1 = GateGroup(None, "orange")
-group1.add_gate(1, 1, 0)
-group1.add_gate(60, 48, 32)
-group1.add_gate(42, 30, 180)
-group1.add_gate(8, 32, 270)
+group1 = GateGroup(None, "orange", game1)
+group1.add_gate(1, 1, 0, 0.3*60)
+group1.add_gate(60, 48, 32, 0.2*60)
+group1.add_gate(42, 30, 180, 0.5*60)
+group1.add_gate(8, 32, 270, 6*60)
+game1.add_group(group1)
+game1.update_delays()
 
 # DON'T FORGET TO ADD GROUPS TO GAME!!!!!!
 game1.add_group(group1)
@@ -157,8 +187,9 @@ pygame.mouse.set_visible(False)
 # --Clock Stuff--
 clock = pygame.time.Clock()
 
-while True:
 
+
+while True:
     mouse_x, mouse_y = pygame.mouse.get_pos()  # get mouse position
     screen.fill((0, 0, 0))  # set background to be black
 
@@ -167,7 +198,8 @@ while True:
             pygame.quit()
             exit()
 
-    game1.debug_display_all_gates()
+    game1.start_map()
+    # game1.debug_display_all_gates()
     game1.update_player_health()
     image_rect.center = (mouse_x, mouse_y)  # Set centre of mouse as centre of cursor image
     screen.blit(cursor_image, image_rect.topleft)  # Display cursor image
@@ -179,3 +211,4 @@ while True:
 
     pygame.display.update()  # updates display surface from inside while loop
     clock.tick(60)  # Telling game not to update more than 60 times per second (Setting Max FPS)
+    game1.frameCount += 1
