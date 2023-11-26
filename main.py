@@ -17,7 +17,6 @@ approach_image = pygame.transform.scale(approach_image_raw, (128, 192))
 approach_image_rect = approach_image.get_rect()
 
 
-
 class Gate:
     def __init__(self, x, y, angle, group, delay):
         self.timer = 1200  # the approach distance
@@ -30,12 +29,12 @@ class Gate:
         self.gate_opacity = 0
         self.approach_opacity = 0
 
-
     def get_index(self):
         return self.group.gates.index(self) + 1
 
     def display(self):
-        self.gate_opacity += 8
+        print(self.timer)
+        self.gate_opacity = min(self.gate_opacity + 8, 255)
         grid_position = ((240 + (self.x * 22.5)), self.y * 22.5)
 
         text_surface = font.render(str(self.get_index()), True, 'white')
@@ -51,22 +50,20 @@ class Gate:
             self.display_approach()  # Display approach Gate
 
 
-        elif self.timer < 0 and self.timer > -150:
-            self.gate_opacity -= 8
+        elif 0 > self.timer > -150:
+            self.gate_opacity = max(self.gate_opacity - 8, 0)
             rotated_gate_image.set_alpha(self.gate_opacity)
             screen.blit(rotated_gate_image, rotated_gate_rect.topleft)  # Display rotated gate
             screen.blit(text_surface, grid_position)
             self.display_approach()  # Display approach Gate
 
-        #write elif to fade out instead of completely disappearing.
+        # write elif to fade out instead of completely disappearing.
 
         else:
             self.group.game.showing_gates.remove(self)
 
-
     def display_approach(self):
         self.approach_opacity += 8
-
 
         if self.timer > -150:
             self.timer = self.timer - 20  # Adjusts the rate of approach, higher is faster
@@ -163,9 +160,7 @@ class Game:
             self.showing_gates.append(triggered_gate)
             triggered_gate.display()
 
-
         for gate in self.showing_gates:
-
             gate.display()
 
 
@@ -180,7 +175,6 @@ screen = pygame.display.set_mode((width, height))  # set screen size
 pygame.display.set_caption("Gate Follower")  # Set window title
 
 font = pygame.font.Font(None, 50)  # Font management
-
 
 # --create music mapping--
 
@@ -202,14 +196,11 @@ group1.add_gate(26, 38, 270, 15)
 game1.add_group(group1)
 game1.update_delays()
 
-
-
 # -- mouse cursor stuff --
 
 # cursor_image_raw = pygame.image.load("Resources/Images/circle_PNG49.png")
 # cursor_image = pygame.transform.scale(cursor_image_raw, (20, 20))
 # image_rect = cursor_image.get_rect()
-#
 # pygame.mouse.set_visible(False)
 
 # --Clock Stuff--
